@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request
 
 from app.slack import send_slack_alert
 
+from app.coralogix import fetch_pipeline_warnings
+
 app = FastAPI()
 
 
@@ -45,3 +47,23 @@ async def coralogix_webhook(request: Request):
 #app/slack.py
 #Slack API
 #pipeline-alerts
+
+@app.post("/webhooks/coralogix")
+async def coralogix_webhook(request: Request):
+    payload = await request.json()
+
+    print("\n========== CORALOGIX ALERT ==========")
+    print(payload)
+    print("=====================================\n")
+
+    return {"status": "received"}
+
+@app.get("/test-coralogix")
+def test_coralogix():
+
+    logs = fetch_pipeline_warnings()
+
+    return {
+        "status": "success",
+        "logs": logs
+    }
