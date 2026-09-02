@@ -7,13 +7,14 @@ CORALOGIX_API_KEY = os.getenv("CORALOGIX_API_KEY")
 
 
 def fetch_pipeline_warnings():
+
+    print("========== CORALOGIX DEBUG ==========")
+    print("API URL:", CORALOGIX_API_URL)
+    print("API KEY PRESENT:", bool(CORALOGIX_API_KEY))
+
     query = """
     source logs
-    | filter level == 'WARN'
-    | filter logger == 'io.hevo.connectors.connectors.ConnectorsTestJobListener'
-    | filter message == 'Failed to connect to source with PERMANENT error'
-    | filter now() - $m.timestamp < 5m
-    | limit 100
+    | limit 10
     """
 
     headers = {
@@ -30,9 +31,14 @@ def fetch_pipeline_warnings():
         timeout=30
     )
 
-    response.raise_for_status()
+    print("STATUS CODE:", response.status_code)
+    print("RESPONSE:", response.text)
+    print("=====================================")
 
-    return response.text
+    return {
+        "status_code": response.status_code,
+        "response": response.text
+    }
 
 #Coralogix logs
 #Coralogix Alert

@@ -61,9 +61,19 @@ async def coralogix_webhook(request: Request):
 @app.get("/test-coralogix")
 def test_coralogix():
 
-    logs = fetch_pipeline_warnings()
+    try:
+        result = fetch_pipeline_warnings()
 
-    return {
-        "status": "success",
-        "logs": logs
-    }
+        return {
+            "status": "success",
+            "coralogix": result
+        }
+
+    except Exception as e:
+
+        print("CORALOGIX ERROR:", repr(e))
+
+        return {
+            "status": "error",
+            "error": str(e)
+        }
