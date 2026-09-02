@@ -70,9 +70,6 @@ def test_coralogix():
         }
 
     except Exception as e:
-
-        print("CORALOGIX ERROR:", repr(e))
-
         return {
             "status": "error",
             "error": str(e)
