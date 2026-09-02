@@ -24,15 +24,13 @@ async def coralogix_webhook(request: Request):
     error_message = payload.get("error_message")
     timestamp = payload.get("timestamp")
 
-    print("========== PIPELINE ALERT ==========")
-    print(f"Region:        {region}")
-    print(f"Team ID:       {team_id}")
-    print(f"Integration:   {integration_id}")
-    print(f"Source:         {source_type}")
-    print(f"Level:         {level}")
-    print(f"Error:          {error_message}")
-    print(f"Timestamp:      {timestamp}")
-    print("====================================")
+    print(f"Region: {region}")
+    print(f"Team ID: {team_id}")
+    print(f"Integration: {integration_id}")
+    print(f"Source: {source_type}")
+    print(f"Level: {level}")
+    print(f"Error: {error_message}")
+    print(f"Timestamp: {timestamp}")
 
     return {
         "status": "received"
