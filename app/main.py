@@ -67,10 +67,7 @@ def test_coralogix():
     processed_logs = []
 
     for log in logs:
-
-        processed_log = process_log(log)
-
-        processed_logs.append(processed_log)
+        processed_logs.append(process_log(log))
 
     return {
         "status": "success",

@@ -2,7 +2,6 @@ import os
 import json
 import requests
 
-
 CORALOGIX_API_URL = os.getenv("CORALOGIX_API_URL")
 CORALOGIX_API_KEY = os.getenv("CORALOGIX_API_KEY")
 
@@ -23,9 +22,7 @@ def fetch_pipeline_warnings():
     response = requests.post(
         CORALOGIX_API_URL,
         headers=headers,
-        json={
-            "query": query
-        },
+        json={"query": query},
         timeout=30
     )
 
@@ -34,11 +31,8 @@ def fetch_pipeline_warnings():
             f"Coralogix API error {response.status_code}: {response.text}"
         )
 
-    response.raise_for_status()
-
     logs = []
 
-    # Coralogix returns NDJSON
     for line in response.text.splitlines():
 
         if not line.strip():
@@ -49,6 +43,7 @@ def fetch_pipeline_warnings():
         except json.JSONDecodeError:
             continue
 
+        # Only process the result line
         if "result" not in data:
             continue
 
@@ -56,6 +51,9 @@ def fetch_pipeline_warnings():
 
         for result in results:
 
+            # -------------------------
+            # Parse userData
+            # -------------------------
             user_data = result.get("userData")
 
             if not user_data:
@@ -66,29 +64,32 @@ def fetch_pipeline_warnings():
             except json.JSONDecodeError:
                 continue
 
-            # Get region from Coralogix labels
+            # -------------------------
+            # Parse labels
+            # -------------------------
             labels = {}
 
             for label in result.get("labels", []):
-                labels[label["key"]] = label["value"]
+                key = label.get("key")
+                value = label.get("value")
 
-            log["_labels"] = labels
+                if key:
+                    labels[key] = value
+
+            # -------------------------
+            # Add region
+            # -------------------------
+            log["region"] = labels.get("applicationname")
 
             logs.append(log)
 
     return logs
 
 
-# -----------------------------------
-# Extract useful fields from each log
-# -----------------------------------
-
 def process_log(log):
 
-    labels = log.get("_labels", {})
-
     return {
-        "region": labels.get("applicationname"),
+        "region": log.get("region"),
         "team_id": log.get("team_id"),
         "integration_id": log.get("integration_id"),
         "source_id": log.get("source_id"),
