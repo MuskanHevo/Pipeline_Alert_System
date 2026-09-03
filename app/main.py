@@ -137,22 +137,37 @@ def test_coralogix():
 
 #Slack Integration
 
-@app.get("/test-slack")
-def test_slack():
-    test_log = {
-        "region": "asia",
-        "team_id": "3196",
-        "integration_id": "18691",
-        "source_id": "18855",
-        "source_type": "AWS_RDS_MYSQL",
-        "level": "WARN",
-        "error_message": "TEST ALERT - Pipeline Alert System is working",
-        "timestamp": "2026-09-03 11:04:10",
-    }
+@app.get("/test-alert")
+def test_alert():
 
-    send_slack_alert(test_log)
+    from app.slack import send_slack_alert
+
+    logs = fetch_pipeline_warnings()
+
+    sent = 0
+
+    for log in logs:
+
+        region = log.get("client")
+        team_id = log.get("team_id")
+        integration_id = log.get("integration_id")
+        source_type = log.get("source_type")
+        error_message = log.get("error_message")
+        timestamp = log.get("timestamp")
+
+        send_slack_alert(
+            region=region,
+            team_id=team_id,
+            integration_id=integration_id,
+            source_type=source_type,
+            error_message=error_message,
+            timestamp=timestamp
+        )
+
+        sent += 1
 
     return {
         "status": "success",
-        "message": "Test Slack alert sent",
+        "logs_found": len(logs),
+        "alerts_sent": sent
     }
