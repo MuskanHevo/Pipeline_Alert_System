@@ -21,8 +21,7 @@ def send_slack_alert(
         f"*Region:* `{region}`\n"
         f"*Team ID:* `{team_id}`\n"
         f"*Integration ID:* `{integration_id}`\n"
-        f"*Source:* `{source_type}`\n"
-        f"*Severity:* `{ 'WARN' }`\n\n"
+        f"*Source:* `{source_type}`\n\n"
         f"*Error:*\n{error_message}\n\n"
         f"*Time:* `{timestamp}`"
     )
