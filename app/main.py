@@ -3,20 +3,50 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 
+from app.coralogix import fetch_pipeline_warnings, process_log
 from app.slack import send_slack_alert
 
-from app.coralogix import fetch_pipeline_warnings, process_log
+
+processed_logs = set()
+
+
+def get_log_id(log):
+    return (
+        log.get("timestamp"),
+        log.get("team_id"),
+        log.get("integration_id"),
+        log.get("source_id"),
+        log.get("error_message"),
+    )
+
 
 async def poll_coralogix():
-
     while True:
-
         try:
             logs = fetch_pipeline_warnings()
 
             print(f"Found {len(logs)} matching logs")
 
-            # Process logs here
+            for raw_log in logs:
+                log = process_log(raw_log)
+
+                log_id = get_log_id(log)
+
+                if log_id in processed_logs:
+                    print(f"Skipping duplicate log: {log_id}")
+                    continue
+
+                send_slack_alert(log)
+
+                processed_logs.add(log_id)
+
+                print(
+                    f"Slack alert sent: "
+                    f"region={log.get('region')}, "
+                    f"team_id={log.get('team_id')}, "
+                    f"integration_id={log.get('integration_id')}, "
+                    f"source_id={log.get('source_id')}"
+                )
 
         except Exception as e:
             print(f"Polling error: {e}")
@@ -106,37 +136,23 @@ def test_coralogix():
 
 
 #Slack Integration
-@app.get("/test-alert")
-def test_alert():
 
-    from app.slack import send_slack_alert
+@app.get("/test-slack")
+def test_slack():
+    test_log = {
+        "region": "asia",
+        "team_id": "3196",
+        "integration_id": "18691",
+        "source_id": "18855",
+        "source_type": "AWS_RDS_MYSQL",
+        "level": "WARN",
+        "error_message": "TEST ALERT - Pipeline Alert System is working",
+        "timestamp": "2026-09-03 11:04:10",
+    }
 
-    logs = fetch_pipeline_warnings()
-
-    sent = 0
-
-    for log in logs:
-
-        region = log.get("client")
-        team_id = log.get("team_id")
-        integration_id = log.get("integration_id")
-        source_type = log.get("source_type")
-        error_message = log.get("error_message")
-        timestamp = log.get("timestamp")
-
-        send_slack_alert(
-            region=region,
-            team_id=team_id,
-            integration_id=integration_id,
-            source_type=source_type,
-            error_message=error_message,
-            timestamp=timestamp
-        )
-
-        sent += 1
+    send_slack_alert(test_log)
 
     return {
         "status": "success",
-        "logs_found": len(logs),
-        "alerts_sent": sent
+        "message": "Test Slack alert sent",
     }
