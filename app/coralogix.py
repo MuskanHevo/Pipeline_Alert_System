@@ -33,6 +33,11 @@ def fetch_pipeline_warnings():
         timeout=30
     )
 
+    if response.status_code != 200:
+        raise Exception(
+            f"Coralogix API error {response.status_code}: {response.text}"
+        )
+
     response.raise_for_status()
 
     logs = []
