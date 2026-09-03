@@ -12,14 +12,6 @@ def fetch_pipeline_warnings():
     query = """
     source logs
     | filter $d.error_message.contains('MySQL version 8.4')
-    | choose $m.timestamp,
-         $l.applicationname,
-         $d.level,
-         $d.team_id,
-         $d.integration_id,
-         $d.source_id,
-         $d.source_type,
-         $d.error_message
     | limit 100
     """
 
@@ -72,9 +64,15 @@ def fetch_pipeline_warnings():
             try:
                 log = json.loads(user_data)
             except json.JSONDecodeError:
-                log = {
-                    "raw": user_data
-                }
+                continue
+
+            # Get region from Coralogix labels
+            labels = {}
+
+            for label in result.get("labels", []):
+                labels[label["key"]] = label["value"]
+
+            log["_labels"] = labels
 
             logs.append(log)
 
@@ -87,22 +85,15 @@ def fetch_pipeline_warnings():
 
 def process_log(log):
 
-    region = log.get("client")
-    team_id = log.get("team_id")
-    integration_id = log.get("integration_id")
-    source_id = log.get("source_id")
-    source_type = log.get("source_type")
-    level = log.get("level")
-    error_message = log.get("error_message")
-    timestamp = log.get("timestamp")
+    labels = log.get("_labels", {})
 
     return {
-        "region": region,
-        "team_id": team_id,
-        "integration_id": integration_id,
-        "source_id": source_id,
-        "source_type": source_type,
-        "level": level,
-        "error_message": error_message,
-        "timestamp": timestamp
+        "region": labels.get("applicationname"),
+        "team_id": log.get("team_id"),
+        "integration_id": log.get("integration_id"),
+        "source_id": log.get("source_id"),
+        "source_type": log.get("source_type"),
+        "level": log.get("level"),
+        "error_message": log.get("error_message"),
+        "timestamp": log.get("timestamp")
     }
