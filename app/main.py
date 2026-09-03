@@ -148,20 +148,15 @@ def test_alert():
 
     for log in logs:
 
-        region = log.get("client")
-        team_id = log.get("team_id")
-        integration_id = log.get("integration_id")
-        source_type = log.get("source_type")
-        error_message = log.get("error_message")
-        timestamp = log.get("timestamp")
+        processed = process_log(log)
 
         send_slack_alert(
-            region=region,
-            team_id=team_id,
-            integration_id=integration_id,
-            source_type=source_type,
-            error_message=error_message,
-            timestamp=timestamp
+            region=processed["region"],
+            team_id=processed["team_id"],
+            integration_id=processed["integration_id"],
+            source_type=processed["source_type"],
+            error_message=processed["error_message"],
+            timestamp=processed["timestamp"]
         )
 
         sent += 1
