@@ -11,11 +11,15 @@ def fetch_pipeline_warnings():
 
     query = """
     source logs
-    | filter level == 'WARN'
-    | filter logger == 'io.hevo.connectors.connectors.ConnectorsTestJobListener'
-    | filter error_message contains 'MySQL version 8.4'
-    | filter log.contains('MySQL version 8.4')
-    | filter now() - $m.timestamp < 5m
+    | filter $d.error_message.contains('MySQL version 8.4')
+    | choose $m.timestamp,
+         $l.applicationname,
+         $d.level,
+         $d.team_id,
+         $d.integration_id,
+         $d.source_id,
+         $d.source_type,
+         $d.error_message
     | limit 100
     """
 
