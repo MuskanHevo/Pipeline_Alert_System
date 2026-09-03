@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 
 
@@ -6,10 +7,17 @@ CORALOGIX_API_URL = os.getenv("CORALOGIX_API_URL")
 CORALOGIX_API_KEY = os.getenv("CORALOGIX_API_KEY")
 
 
-
 def fetch_pipeline_warnings():
 
-    query = "source logs | limit 10"
+    query = """
+    source logs
+    | filter level == 'WARN'
+    | filter logger == 'io.hevo.connectors.connectors.ConnectorsTestJobListener'
+    | filter error_message contains 'MySQL version 8.4'
+    | filter log.contains('MySQL version 8.4')
+    | filter now() - $m.timestamp < 5m
+    | limit 100
+    """
 
     headers = {
         "Content-Type": "application/json",
@@ -19,28 +27,73 @@ def fetch_pipeline_warnings():
     response = requests.post(
         CORALOGIX_API_URL,
         headers=headers,
-        json={"query": query},
+        json={
+            "query": query
+        },
         timeout=30
     )
 
-    print("========== CORALOGIX ==========")
-    print("Status:", response.status_code)
-    print("Response:", response.text)
-    print("================================")
+    response.raise_for_status()
+
+    logs = []
+
+    # Coralogix returns NDJSON
+    for line in response.text.splitlines():
+
+        if not line.strip():
+            continue
+
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        if "result" not in data:
+            continue
+
+        results = data["result"].get("results", [])
+
+        for result in results:
+
+            user_data = result.get("userData")
+
+            if not user_data:
+                continue
+
+            try:
+                log = json.loads(user_data)
+            except json.JSONDecodeError:
+                log = {
+                    "raw": user_data
+                }
+
+            logs.append(log)
+
+    return logs
+
+
+# -----------------------------------
+# Extract useful fields from each log
+# -----------------------------------
+
+def process_log(log):
+
+    region = log.get("client")
+    team_id = log.get("team_id")
+    integration_id = log.get("integration_id")
+    source_id = log.get("source_id")
+    source_type = log.get("source_type")
+    level = log.get("level")
+    error_message = log.get("error_message")
+    timestamp = log.get("timestamp")
 
     return {
-        "status_code": response.status_code,
-        "response": response.text
+        "region": region,
+        "team_id": team_id,
+        "integration_id": integration_id,
+        "source_id": source_id,
+        "source_type": source_type,
+        "level": level,
+        "error_message": error_message,
+        "timestamp": timestamp
     }
-
-#Coralogix logs
-#Coralogix Alert
-#Generic Webhook
-#https://your-app.onrender.com/webhooks/coralogix
-#FastAPI
-#Extract:
-#region
-#team_id
-#pipeline/source ID
-#error_message
-#Slack
