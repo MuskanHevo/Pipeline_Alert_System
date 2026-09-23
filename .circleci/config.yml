@@ -1,0 +1,60 @@
+version: 2.1
+
+parameters:
+  run_flaky:
+    type: boolean
+    default: false
+
+jobs:
+  build:
+    docker:
+      - image: cimg/base:2024.01
+    parallelism: 2
+    steps:
+      - checkout
+      - run:
+          name: Build step
+          command: |
+            mkdir -p /tmp/artifacts
+            echo "datagen artifact from node $CIRCLE_NODE_INDEX" > /tmp/artifacts/output-$CIRCLE_NODE_INDEX.txt
+      - store_artifacts:
+          path: /tmp/artifacts
+
+  with-context:
+    docker:
+      - image: cimg/base:2024.01
+    steps:
+      - checkout
+      - run:
+          name: Use context
+          command: echo "job scoped to datagen-context"
+
+  flaky:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run:
+          name: Randomly-flaky test
+          command: |
+            mkdir -p /tmp/test-results
+            echo aW1wb3J0IHJhbmRvbSwgc3lzCgpvayA9IHJhbmRvbS5yYW5kb20oKSA8IDAuNQpmYWlsID0gMCBpZiBvayBlbHNlIDEKZmFpbHVyZSA9ICIiIGlmIG9rIGVsc2UgJzxmYWlsdXJlIG1lc3NhZ2U9ImludGVudGlvbmFsIGZsYWtlIj5ib29tPC9mYWlsdXJlPicKeG1sID0gKAogICAgJzw/eG1sIHZlcnNpb249IjEuMCIgZW5jb2Rpbmc9IlVURi04Ij8+JwogICAgJzx0ZXN0c3VpdGUgbmFtZT0iZmxha3kiIHRlc3RzPSIxIiBmYWlsdXJlcz0ie2ZhaWx9Ij4nCiAgICAnPHRlc3RjYXNlIGNsYXNzbmFtZT0iZGF0YWdlbi5GbGFreVN1aXRlIiBuYW1lPSJ0ZXN0X3NvbWV0aW1lc19mYWlscyIgdGltZT0iMC4wMSI+JwogICAgIntmYWlsdXJlfSIKICAgICI8L3Rlc3RjYXNlPjwvdGVzdHN1aXRlPiIKKS5mb3JtYXQoZmFpbD1mYWlsLCBmYWlsdXJlPWZhaWx1cmUpCgp3aXRoIG9wZW4oIi90bXAvdGVzdC1yZXN1bHRzL3Jlc3VsdHMueG1sIiwgInciKSBhcyBmOgogICAgZi53cml0ZSh4bWwpCgppZiBub3Qgb2s6CiAgICBzeXMuZXhpdCgxKQo= | base64 -d > /tmp/flaky_test.py
+            python3 /tmp/flaky_test.py
+      - store_test_results:
+          path: /tmp/test-results
+          when: always
+
+workflows:
+  main:
+    unless: << pipeline.parameters.run_flaky >>
+    jobs:
+      - build
+      - with-context:
+          context: datagen-context
+          requires:
+            - build
+
+  datagen-flaky:
+    when: << pipeline.parameters.run_flaky >>
+    jobs:
+      - flaky
