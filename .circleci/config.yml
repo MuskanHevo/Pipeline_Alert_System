@@ -29,6 +29,15 @@ jobs:
           name: Use context
           command: echo "job scoped to datagen-context"
 
+  legacy-probe:
+    docker:
+      - image: circleci/python:2.7
+    steps:
+      - checkout
+      - run:
+          name: Legacy image probe (job_message research)
+          command: echo "probing for a deprecation/legacy-image message on this job"
+
   flaky:
     docker:
       - image: cimg/python:3.11
@@ -53,6 +62,7 @@ workflows:
           context: datagen-context
           requires:
             - build
+      - legacy-probe
 
   datagen-flaky:
     when: << pipeline.parameters.run_flaky >>
